@@ -23,6 +23,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/shipping-service', '-f', 'shipping-service/Dockerfile', '.']
 
+  # Levantar los servicios del core primero
   - name: 'docker/compose:1.29.2'
     args: ['-f', 'core.yml', 'up', '-d']
 
@@ -31,3 +32,6 @@ steps:
 
   - name: 'docker/compose:1.29.2'
     args: ['-f', 'compose.yml', 'up', '-d']
+
+options:
+  logging: CLOUD_LOGGING_ONLY

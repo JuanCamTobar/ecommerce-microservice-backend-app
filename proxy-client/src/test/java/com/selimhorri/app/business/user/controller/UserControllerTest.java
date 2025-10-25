@@ -25,12 +25,14 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
+        System.out.println("[TEST] Setting up UserControllerTest");
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
     void testFindAll() {
-        com.selimhorri.app.business.user.model.UserDto user = com.selimhorri.app.business.user.model.UserDto.builder()
+    System.out.println("[TEST] testFindAll - start");
+    com.selimhorri.app.business.user.model.UserDto user = com.selimhorri.app.business.user.model.UserDto.builder()
                 .userId(1)
                 .firstName("juan")
                 .lastName("perez")
@@ -41,11 +43,14 @@ class UserControllerTest {
         when(userClientService.findAll()).thenReturn(ResponseEntity.ok(mockResponse));
 
         var result = userController.findAll();
+        System.out.println("[TEST] testFindAll - result collection size: " + result.getBody().getCollection().size());
         assertThat(result.getBody().getCollection()).hasSize(1);
+        System.out.println("[TEST] testFindAll - end");
     }
 
     @Test
     void testFindById() {
+        System.out.println("[TEST] testFindById - start");
         com.selimhorri.app.business.user.model.UserDto mockUser = com.selimhorri.app.business.user.model.UserDto.builder()
                 .userId(1)
                 .firstName("juan")
@@ -54,11 +59,14 @@ class UserControllerTest {
         when(userClientService.findById("1")).thenReturn(ResponseEntity.ok(mockUser));
 
         var result = userController.findById("1");
+        System.out.println("[TEST] testFindById - returned firstName: " + result.getBody().getFirstName());
         assertThat(result.getBody().getFirstName()).isEqualTo("juan");
+        System.out.println("[TEST] testFindById - end");
     }
 
     @Test
     void testFindByUsername() {
+        System.out.println("[TEST] testFindByUsername - start");
         com.selimhorri.app.business.user.model.UserDto mockUser = com.selimhorri.app.business.user.model.UserDto.builder()
                 .userId(2)
                 .firstName("carlos")
@@ -67,12 +75,15 @@ class UserControllerTest {
         when(userClientService.findByUsername("carlos")).thenReturn(ResponseEntity.ok(mockUser));
 
         var result = userController.findByUsername("carlos");
+        System.out.println("[TEST] testFindByUsername - returned email: " + result.getBody().getEmail());
         assertThat(result.getBody().getEmail()).isEqualTo("carlos@mail.com");
+        System.out.println("[TEST] testFindByUsername - end");
     }
 
     @Test
     void testSaveUser() {
-        com.selimhorri.app.business.user.model.UserDto input = com.selimhorri.app.business.user.model.UserDto.builder()
+    System.out.println("[TEST] testSaveUser - start");
+    com.selimhorri.app.business.user.model.UserDto input = com.selimhorri.app.business.user.model.UserDto.builder()
                 .firstName("maria")
                 .email("maria@mail.com")
                 .build();
@@ -84,14 +95,19 @@ class UserControllerTest {
         when(userClientService.save(input)).thenReturn(ResponseEntity.ok(saved));
 
         var result = userController.save(input);
-        assertThat(result.getBody().getUserId()).isEqualTo(10);
+    System.out.println("[TEST] testSaveUser - returned userId: " + result.getBody().getUserId());
+    assertThat(result.getBody().getUserId()).isEqualTo(10);
+    System.out.println("[TEST] testSaveUser - end");
     }
 
     @Test
     void testDeleteUser() {
+        System.out.println("[TEST] testDeleteUser - start");
         when(userClientService.deleteById("99")).thenReturn(ResponseEntity.ok(true));
 
         var result = userController.deleteById("99");
+        System.out.println("[TEST] testDeleteUser - returned: " + result.getBody());
         assertThat(result.getBody()).isTrue();
+        System.out.println("[TEST] testDeleteUser - end");
     }
 }

@@ -26,12 +26,27 @@ import com.selimhorri.app.dto.UserDto;
 import com.selimhorri.app.repository.FavouriteRepository;
 
 import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import org.springframework.http.MediaType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class FavouriteResourceIntegrationTest {
+
+    @TestConfiguration
+    static class TestRestConfig {
+        // Provide a plain RestTemplate bean for tests so MockRestServiceServer can intercept calls
+        @Bean
+        @Primary
+        public RestTemplate restTemplate() {
+            return new RestTemplate();
+        }
+    }
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -47,6 +62,14 @@ class FavouriteResourceIntegrationTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(AppConstant.LOCAL_DATE_TIME_FORMAT);
+
+    private String encode(final String s) {
+        try {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8.toString());
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -144,10 +167,10 @@ class FavouriteResourceIntegrationTest {
         FavouriteDto dto = buildDto(5, 50);
         restTemplate.postForEntity("/api/favourites", dto, FavouriteDto.class);
 
-        String likeDate = dto.getLikeDate().format(fmt);
-        ResponseEntity<Boolean> delRes = restTemplate.exchange(
-                "/api/favourites/" + dto.getUserId() + "/" + dto.getProductId() + "/" + likeDate,
-                HttpMethod.DELETE, null, Boolean.class);
+    String likeDate = encode(dto.getLikeDate().format(fmt));
+    ResponseEntity<Boolean> delRes = restTemplate.exchange(
+        "/api/favourites/" + dto.getUserId() + "/" + dto.getProductId() + "/" + likeDate,
+        HttpMethod.DELETE, null, Boolean.class);
         assertThat(delRes.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
@@ -165,10 +188,10 @@ class FavouriteResourceIntegrationTest {
         this.mockServer.expect(ExpectedCount.once(), requestTo(AppConstant.DiscoveredDomainsApi.PRODUCT_SERVICE_API_URL + "/" + dto.getProductId()))
                 .andRespond(withSuccess(productJson(dto.getProductId()), MediaType.APPLICATION_JSON));
 
-        String likeDate = dto.getLikeDate().format(fmt);
-        ResponseEntity<FavouriteDto> getRes = restTemplate.getForEntity(
-                "/api/favourites/" + dto.getUserId() + "/" + dto.getProductId() + "/" + likeDate,
-                FavouriteDto.class);
+    String likeDate = encode(dto.getLikeDate().format(fmt));
+    ResponseEntity<FavouriteDto> getRes = restTemplate.getForEntity(
+        "/api/favourites/" + dto.getUserId() + "/" + dto.getProductId() + "/" + likeDate,
+        FavouriteDto.class);
         assertThat(getRes.getStatusCode()).isEqualTo(HttpStatus.OK);
         FavouriteDto found = getRes.getBody();
         assertThat(found).isNotNull();

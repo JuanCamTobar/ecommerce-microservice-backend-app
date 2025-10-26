@@ -108,8 +108,10 @@ class FavouriteResourceIntegrationTest {
     void saveAndFindById_with_request_body_and_external_calls() throws Exception {
         FavouriteDto dto = buildDto(1, 10);
 
-        ResponseEntity<FavouriteDto> postRes = restTemplate.postForEntity("/api/favourites", dto, FavouriteDto.class);
-        assertThat(postRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+    ResponseEntity<String> postRes = restTemplate.postForEntity("/api/favourites", dto, String.class);
+    assertThat(postRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+    FavouriteDto saved = mapper.readValue(postRes.getBody(), FavouriteDto.class);
+    assertThat(saved).isNotNull();
 
         this.mockServer.expect(ExpectedCount.once(), requestTo(AppConstant.DiscoveredDomainsApi.USER_SERVICE_API_URL + "/" + dto.getUserId()))
                 .andRespond(withSuccess(userJson(dto.getUserId()), MediaType.APPLICATION_JSON));
@@ -117,13 +119,13 @@ class FavouriteResourceIntegrationTest {
         this.mockServer.expect(ExpectedCount.once(), requestTo(AppConstant.DiscoveredDomainsApi.PRODUCT_SERVICE_API_URL + "/" + dto.getProductId()))
                 .andRespond(withSuccess(productJson(dto.getProductId()), MediaType.APPLICATION_JSON));
 
-        FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
-        ResponseEntity<FavouriteDto> getRes = restTemplate.postForEntity("/api/favourites/find", id, FavouriteDto.class);
-        assertThat(getRes.getStatusCode()).isEqualTo(HttpStatus.OK);
-        FavouriteDto found = getRes.getBody();
-        assertThat(found).isNotNull();
-        assertThat(found.getUserDto()).isNotNull();
-        assertThat(found.getProductDto()).isNotNull();
+    FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
+    ResponseEntity<String> getRes = restTemplate.postForEntity("/api/favourites/find", id, String.class);
+    assertThat(getRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+    FavouriteDto found = mapper.readValue(getRes.getBody(), FavouriteDto.class);
+    assertThat(found).isNotNull();
+    assertThat(found.getUserDto()).isNotNull();
+    assertThat(found.getProductDto()).isNotNull();
 
         this.mockServer.verify();
     }
@@ -132,8 +134,8 @@ class FavouriteResourceIntegrationTest {
     void findAll_returns_collection_and_resolves_external_apis() throws Exception {
         FavouriteDto a = buildDto(2, 20);
         FavouriteDto b = buildDto(3, 30);
-        restTemplate.postForEntity("/api/favourites", a, FavouriteDto.class);
-        restTemplate.postForEntity("/api/favourites", b, FavouriteDto.class);
+    restTemplate.postForEntity("/api/favourites", a, String.class);
+    restTemplate.postForEntity("/api/favourites", b, String.class);
 
         this.mockServer.expect(ExpectedCount.manyTimes(), requestTo(org.hamcrest.Matchers.startsWith(AppConstant.DiscoveredDomainsApi.USER_SERVICE_API_URL)))
                 .andRespond(withSuccess(userJson(2), MediaType.APPLICATION_JSON));
@@ -148,30 +150,31 @@ class FavouriteResourceIntegrationTest {
     }
 
     @Test
-    void update_existing_favourite() {
+    void update_existing_favourite() throws Exception {
         FavouriteDto dto = buildDto(4, 40);
-        restTemplate.postForEntity("/api/favourites", dto, FavouriteDto.class);
+    restTemplate.postForEntity("/api/favourites", dto, String.class);
 
-        HttpEntity<FavouriteDto> request = new HttpEntity<>(dto);
-        ResponseEntity<FavouriteDto> putRes = restTemplate.exchange("/api/favourites", HttpMethod.PUT, request, FavouriteDto.class);
-        assertThat(putRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+    HttpEntity<FavouriteDto> request = new HttpEntity<>(dto);
+    ResponseEntity<String> putRes = restTemplate.exchange("/api/favourites", HttpMethod.PUT, request, String.class);
+    assertThat(putRes.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        
-        FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
-        ResponseEntity<FavouriteDto> getRes = restTemplate.postForEntity("/api/favourites/find", id, FavouriteDto.class);
-        assertThat(getRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+    FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
+    ResponseEntity<String> getRes = restTemplate.postForEntity("/api/favourites/find", id, String.class);
+    assertThat(getRes.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    void deleteById_and_then_not_found() {
+    void deleteById_and_then_not_found() throws Exception {
         FavouriteDto dto = buildDto(5, 50);
         restTemplate.postForEntity("/api/favourites", dto, FavouriteDto.class);
 
     String likeDate = encode(dto.getLikeDate().format(fmt));
-    ResponseEntity<Boolean> delRes = restTemplate.exchange(
+    ResponseEntity<String> delRes = restTemplate.exchange(
         "/api/favourites/" + dto.getUserId() + "/" + dto.getProductId() + "/" + likeDate,
-        HttpMethod.DELETE, null, Boolean.class);
+        HttpMethod.DELETE, null, String.class);
         assertThat(delRes.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Boolean deleted = mapper.readValue(delRes.getBody(), Boolean.class);
+        assertThat(deleted).isTrue();
 
         FavouriteId id = new FavouriteId(dto.getUserId(), dto.getProductId(), dto.getLikeDate());
         ResponseEntity<String> getRes = restTemplate.postForEntity("/api/favourites/find", id, String.class);

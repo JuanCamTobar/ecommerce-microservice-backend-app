@@ -1,4 +1,4 @@
-package com.selimhorri.app.service;
+package com.selimhorri.app;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -21,6 +21,7 @@ import com.selimhorri.app.dto.FavouriteDto;
 import com.selimhorri.app.dto.ProductDto;
 import com.selimhorri.app.dto.UserDto;
 import com.selimhorri.app.repository.FavouriteRepository;
+import com.selimhorri.app.service.FavouriteService;
 
 @SpringBootTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",

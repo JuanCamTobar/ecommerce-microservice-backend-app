@@ -21,6 +21,8 @@ import com.selimhorri.app.dto.FavouriteDto;
 import com.selimhorri.app.dto.ProductDto;
 import com.selimhorri.app.dto.UserDto;
 import com.selimhorri.app.repository.FavouriteRepository;
+import com.selimhorri.app.exception.wrapper.FavouriteNotFoundException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.selimhorri.app.service.FavouriteService;
 
 @SpringBootTest(properties = {
@@ -119,6 +121,12 @@ class FavouriteServiceIntegrationTest {
         this.favouriteService.deleteById(existingId);
 
         assertThat(this.favouriteRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void findByIdShouldThrowWhenNotPresent() {
+        FavouriteId missingId = new FavouriteId(9999, 8888, EXISTING_LIKE_DATE.plusDays(5));
+        assertThrows(FavouriteNotFoundException.class, () -> this.favouriteService.findById(missingId));
     }
 
     private void mockRemoteUser(int userId, String firstName) {

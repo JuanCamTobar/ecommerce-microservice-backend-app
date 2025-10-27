@@ -14,7 +14,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import com.selimhorri.app.domain.Order;
+import com.selimhorri.app.domain.Cart;
 import com.selimhorri.app.dto.OrderDto;
+import com.selimhorri.app.dto.CartDto;
 import com.selimhorri.app.exception.wrapper.OrderNotFoundException;
 import com.selimhorri.app.repository.OrderRepository;
 import com.selimhorri.app.service.OrderService;
@@ -44,6 +46,9 @@ class OrderServiceIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private com.selimhorri.app.repository.CartRepository cartRepository;
+
     @MockBean
     private org.springframework.web.client.RestTemplate restTemplate;
 
@@ -52,10 +57,14 @@ class OrderServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         this.orderRepository.deleteAll();
+        this.cartRepository.deleteAll();
+        Cart cart = Cart.builder().userId(555).build();
+        Cart savedCart = this.cartRepository.save(cart);
         Order order = Order.builder()
                 .orderDate(EXISTING_ORDER_DATE)
                 .orderDesc("Initial order")
                 .orderFee(12.5)
+                .cart(savedCart)
                 .build();
         Order saved = this.orderRepository.save(order);
         this.existingId = saved.getOrderId();
@@ -81,13 +90,18 @@ class OrderServiceIntegrationTest {
 
     @Test
     void saveShouldPersistOrder() {
-        OrderDto payload = OrderDto.builder()
-                .orderDate(EXISTING_ORDER_DATE.plusDays(1))
-                .orderDesc("New order")
-                .orderFee(5.0)
-                .build();
+    // create a cart to associate with saved order so mapping doesn't NPE
+    Cart cart = Cart.builder().userId(777).build();
+    Cart savedCart = this.cartRepository.save(cart);
 
-        OrderDto saved = this.orderService.save(payload);
+    OrderDto payload = OrderDto.builder()
+        .orderDate(EXISTING_ORDER_DATE.plusDays(1))
+        .orderDesc("New order")
+        .orderFee(5.0)
+        .cartDto(CartDto.builder().cartId(savedCart.getCartId()).build())
+        .build();
+
+    OrderDto saved = this.orderService.save(payload);
 
         Optional<Order> persisted = this.orderRepository.findById(saved.getOrderId());
         assertThat(persisted).isPresent();

@@ -28,6 +28,51 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/shipping-service:$SHORT_SHA', '-f', 'shipping-service/Dockerfile', '.']
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+
+        echo "Obteniendo credenciales del cluster GKE ${_CLUSTER_NAME}..."
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}
+
+        echo "Creando namespace si no existe..."
+        kubectl create namespace ${_NAMESPACE} || true
+
+        echo "Sustituyendo placeholders en manifests k8s..."
+        for f in k8s/staging/*.yml; do
+          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f" || true
+          sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f" || true
+        done
+
+        echo "Aplicando core services..."
+        kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml
+
+        echo "Esperando core deployments..."
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=120s
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/proxy-client --timeout=120s
+
+        echo "Aplicando dependent services..."
+        kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml
+
+        echo "Esperando dependent deployments..."
+        kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s
+
+        echo "Creando pod temporal para ejecutar tests..."
+        kubectl -n ${_NAMESPACE} run stage-tester --image=curlimages/curl --restart=Never --command -- sleep 3600 || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=ready pod -l run=stage-tester --timeout=60s
+
+        echo "Copiando y ejecutando script de tests..."
+        kubectl -n ${_NAMESPACE} cp k8s/test-runner.sh stage-tester:/test-runner.sh
+        kubectl -n ${_NAMESPACE} exec stage-tester -- chmod +x /test-runner.sh
+        kubectl -n ${_NAMESPACE} exec stage-tester -- /test-runner.sh ${_NAMESPACE}
+
+        echo "Borrando pod temporal de test..."
+        kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found
+
 images:
   - 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA'
   - 'gcr.io/$PROJECT_ID/cloud-config:$SHORT_SHA'
@@ -39,40 +84,6 @@ images:
   - 'gcr.io/$PROJECT_ID/payment-service:$SHORT_SHA'
   - 'gcr.io/$PROJECT_ID/favourite-service:$SHORT_SHA'
   - 'gcr.io/$PROJECT_ID/shipping-service:$SHORT_SHA'
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
-        echo "Obteniendo credenciales del cluster GKE ${_CLUSTER_NAME}..."
-        gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}
-        kubectl create namespace ${_NAMESPACE} || true
-
-        echo "Sustituyendo placeholders en manifests k8s..."
-        for f in k8s/staging/*.yml; do
-          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f" || true
-          sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f" || true
-        done
-
-        echo "Aplicando manifests en namespace ${_NAMESPACE}..."
-        kubectl apply -n ${_NAMESPACE} -f k8s/staging/
-
-        echo "Esperando que los deployments estén listos..."
-        kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s
-
-        echo "Creando pod temporal para ejecutar pruebas dentro del cluster..."
-        kubectl -n ${_NAMESPACE} run stage-tester --image=curlimages/curl --restart=Never --command -- sleep 3600 || true
-        kubectl -n ${_NAMESPACE} wait --for=condition=ready pod -l run=stage-tester --timeout=60s
-
-        echo "Copiando y ejecutando script de tests..."
-        kubectl -n ${_NAMESPACE} cp k8s/test-runner.sh stage-tester:/test-runner.sh
-        kubectl -n ${_NAMESPACE} exec stage-tester -- chmod +x /test-runner.sh
-        kubectl -n ${_NAMESPACE} exec stage-tester -- /test-runner.sh ${_NAMESPACE}
-
-        echo "Borrando pod temporal de test..."
-        kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found
 
 options:
   logging: CLOUD_LOGGING_ONLY

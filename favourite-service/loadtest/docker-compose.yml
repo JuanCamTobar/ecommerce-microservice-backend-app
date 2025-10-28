@@ -16,5 +16,5 @@ services:
 
 networks:
   microservices_network:
-    external: true
-    name: ecommerce-microservice-backend-app_microservices_network
+    external:
+      name: ecommerce-microservice-backend-app_microservices_network

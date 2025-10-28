@@ -12,4 +12,9 @@ services:
       - TARGET_HOST=http://favourite-service-container:8800
     command: -f /mnt/locust/locustfile.py --host http://favourite-service-container:8800
     networks:
-      - microservices_network 
+      - microservices_network
+
+networks:
+  microservices_network:
+    external: true
+    name: ecommerce-microservice-backend-app_microservices_network

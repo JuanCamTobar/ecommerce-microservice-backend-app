@@ -11,9 +11,9 @@ services:
     environment:
       - TARGET_HOST=${TARGET_HOST:-http://api-gateway-container:8080/favourite-service}
     networks:
-      - microservices_network
+      - ecommerce-microservice-backend-app_microservices_network
     command: -f /mnt/locust/locustfile.py --host ${TARGET_HOST:-http://api-gateway-container:8080/favourite-service}
 
 networks:
-  microservices_network:
+  ecommerce-microservice-backend-app_microservices_network:
     external: true

@@ -57,7 +57,6 @@ class UserE2ETest {
                 .build();
     }
 
-    
     @Test
     void createUserWithCompleteProfile_thenUpdate_thenVerifyAllChanges() {
         UserDto payload = UserDto.builder()
@@ -86,10 +85,11 @@ class UserE2ETest {
         created.setPhone("+0987654321");
 
         ResponseEntity<UserDto> updateResp = this.restTemplate.exchange(
-                "/api/users", 
-                HttpMethod.PUT, 
-                new HttpEntity<>(created), 
-                UserDto.class);
+                "/api/users/{userId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(created),
+                UserDto.class,
+                created.getUserId());
         assertThat(updateResp.getStatusCode().is2xxSuccessful()).isTrue();
         UserDto updated = updateResp.getBody();
         
@@ -113,20 +113,20 @@ class UserE2ETest {
         assertThat(getResp.getBody().getUserId()).isEqualTo(userId);
 
         ResponseEntity<Boolean> delResp = this.restTemplate.exchange(
-                "/api/users/{id}", 
-                HttpMethod.DELETE, 
-                HttpEntity.EMPTY, 
-                Boolean.class, 
+                "/api/users/{id}",
+                HttpMethod.DELETE,
+                HttpEntity.EMPTY,
+                Boolean.class,
                 userId);
         assertThat(delResp.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(delResp.getBody()).isTrue();
 
-        // Verificar que ya no existe en BD
         Optional<com.selimhorri.app.domain.User> deleted = this.userRepository.findById(userId);
         assertThat(deleted).isNotPresent();
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void createMultipleUsers_thenFindAll_thenFindByUsername_thenUpdateOne() {
         UserDto user1 = this.restTemplate.postForEntity("/api/users", 
                 buildUser("alice_2024", "Alice", "Wonderland"), UserDto.class).getBody();
@@ -140,15 +140,15 @@ class UserE2ETest {
         assertThat(user3).isNotNull();
 
         ResponseEntity<com.selimhorri.app.dto.response.collection.DtoCollectionResponse<UserDto>> getAllResp = 
-                this.restTemplate.getForEntity("/api/users", 
+                this.restTemplate.getForEntity("/api/users",
                 (Class<com.selimhorri.app.dto.response.collection.DtoCollectionResponse<UserDto>>) 
                 (Class<?>) com.selimhorri.app.dto.response.collection.DtoCollectionResponse.class);
         assertThat(getAllResp.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(getAllResp.getBody().getCollection()).asList().hasSizeGreaterThanOrEqualTo(3);
 
         ResponseEntity<UserDto> findByUsernameResp = this.restTemplate.getForEntity(
-                "/api/users/username/{username}", 
-                UserDto.class, 
+                "/api/users/username/{username}",
+                UserDto.class,
                 "bob_2024");
         assertThat(findByUsernameResp.getStatusCode().is2xxSuccessful()).isTrue();
         UserDto found = findByUsernameResp.getBody();
@@ -157,11 +157,13 @@ class UserE2ETest {
 
         user2.setFirstName("Robert");
         user2.setLastName("The Builder");
+
         ResponseEntity<UserDto> updateResp = this.restTemplate.exchange(
-                "/api/users/" + user2.getUserId(), 
-                HttpMethod.PUT, 
-                new HttpEntity<>(user2), 
-                UserDto.class);
+                "/api/users/{userId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(user2),
+                UserDto.class,
+                user2.getUserId());
         assertThat(updateResp.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(updateResp.getBody().getFirstName()).isEqualTo("Robert");
     }
@@ -188,10 +190,10 @@ class UserE2ETest {
         created.setImageUrl("https://example.com/new-avatar.jpg");
 
         ResponseEntity<UserDto> updateResp = this.restTemplate.exchange(
-                "/api/users/{userId}", 
-                HttpMethod.PUT, 
-                new HttpEntity<>(created), 
-                UserDto.class, 
+                "/api/users/{userId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(created),
+                UserDto.class,
                 userId);
         assertThat(updateResp.getStatusCode().is2xxSuccessful()).isTrue();
 
@@ -222,26 +224,26 @@ class UserE2ETest {
         assertThat(created.getUserId()).isNotNull();
 
         ResponseEntity<UserDto> getById = this.restTemplate.getForEntity(
-                "/api/users/{id}", 
-                UserDto.class, 
+                "/api/users/{id}",
+                UserDto.class,
                 created.getUserId());
         assertThat(getById.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(getById.getBody().getFirstName()).isEqualTo("Pedro");
 
         created.setFirstName("Pedro Luis");
         created.setEmail("pedroluis.martinez@example.com");
-        
+
         ResponseEntity<UserDto> updateById = this.restTemplate.exchange(
-                "/api/users/{userId}", 
-                HttpMethod.PUT, 
-                new HttpEntity<>(created), 
-                UserDto.class, 
+                "/api/users/{userId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(created),
+                UserDto.class,
                 created.getUserId());
         assertThat(updateById.getStatusCode().is2xxSuccessful()).isTrue();
 
         ResponseEntity<UserDto> getAgain = this.restTemplate.getForEntity(
-                "/api/users/{id}", 
-                UserDto.class, 
+                "/api/users/{id}",
+                UserDto.class,
                 created.getUserId());
         assertThat(getAgain.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(getAgain.getBody().getFirstName()).isEqualTo("Pedro Luis");

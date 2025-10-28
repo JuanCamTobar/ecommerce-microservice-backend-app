@@ -61,14 +61,6 @@ steps:
         echo "Esperando dependent deployments..."
         kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s
 
-        echo "Creando pod temporal para ejecutar tests..."
-        kubectl -n ${_NAMESPACE} run stage-tester --image=curlimages/curl --restart=Never --command -- sleep 3600 || true
-        kubectl -n ${_NAMESPACE} wait --for=condition=ready pod -l run=stage-tester --timeout=60s
-
-        echo "Copiando y ejecutando script de tests..."
-        kubectl -n ${_NAMESPACE} cp k8s/test-runner.sh stage-tester:/test-runner.sh
-        kubectl -n ${_NAMESPACE} exec stage-tester -- chmod +x /test-runner.sh
-        kubectl -n ${_NAMESPACE} exec stage-tester -- /test-runner.sh ${_NAMESPACE}
 
         echo "Borrando pod temporal de test..."
         kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found

@@ -1,0 +1,399 @@
+# -----------------------------
+# API Gateway
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: selimhorri/api-gateway-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: api-gateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+
+# -----------------------------
+# Proxy Client
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxy-client
+  template:
+    metadata:
+      labels:
+        app: proxy-client
+    spec:
+      containers:
+      - name: proxy-client
+        image: selimhorri/proxy-client-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8900
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-client
+spec:
+  type: ClusterIP
+  selector:
+    app: proxy-client
+  ports:
+  - port: 8900
+    targetPort: 8900
+
+# -----------------------------
+# Order Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: selimhorri/order-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8300
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+spec:
+  type: ClusterIP
+  selector:
+    app: order-service
+  ports:
+  - port: 8300
+    targetPort: 8300
+
+# -----------------------------
+# Payment Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: selimhorri/payment-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8400
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  type: ClusterIP
+  selector:
+    app: payment-service
+  ports:
+  - port: 8400
+    targetPort: 8400
+
+# -----------------------------
+# Product Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+      - name: product-service
+        image: selimhorri/product-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8500
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  type: ClusterIP
+  selector:
+    app: product-service
+  ports:
+  - port: 8500
+    targetPort: 8500
+
+# -----------------------------
+# Shipping Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shipping-service
+  template:
+    metadata:
+      labels:
+        app: shipping-service
+    spec:
+      containers:
+      - name: shipping-service
+        image: selimhorri/shipping-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8600
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping-service
+spec:
+  type: ClusterIP
+  selector:
+    app: shipping-service
+  ports:
+  - port: 8600
+    targetPort: 8600
+
+# -----------------------------
+# User Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: selimhorri/user-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8700
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  type: ClusterIP
+  selector:
+    app: user-service
+  ports:
+  - port: 8700
+    targetPort: 8700
+
+# -----------------------------
+# Favourite Service
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: favourite-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: favourite-service
+  template:
+    metadata:
+      labels:
+        app: favourite-service
+    spec:
+      containers:
+      - name: favourite-service
+        image: selimhorri/favourite-service-ecommerce-boot:0.1.0
+        ports:
+        - containerPort: 8800
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        - name: SPRING_ZIPKIN_BASE_URL
+          value: "http://zipkin:9411"
+        - name: SPRING_CONFIG_IMPORT
+          value: "optional:configserver:http://cloud-config:9296/"
+        - name: EUREKA_CLIENT_REGION
+          value: "default"
+        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+          value: "myzone"
+        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+          value: "http://service-discovery:8761/eureka"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://service-discovery:8761/eureka"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: favourite-service
+spec:
+  type: ClusterIP
+  selector:
+    app: favourite-service
+  ports:
+  - port: 8800
+    targetPort: 8800

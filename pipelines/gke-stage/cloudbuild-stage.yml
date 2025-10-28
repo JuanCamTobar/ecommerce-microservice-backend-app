@@ -30,40 +30,44 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
+    args: ['-c', 'gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}']
 
-        echo "Obteniendo credenciales del cluster GKE ${_CLUSTER_NAME}..."
-        gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl create namespace ${_NAMESPACE} || true']
 
-        echo "Creando namespace si no existe..."
-        kubectl create namespace ${_NAMESPACE} || true
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'for f in k8s/staging/*.yml; do sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"; sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f"; done']
 
-        echo "Sustituyendo placeholders en manifests k8s..."
-        for f in k8s/staging/*.yml; do
-          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f" || true
-          sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f" || true
-        done
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml']
 
-        echo "Aplicando core services..."
-        kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s']
 
-        echo "Esperando core deployments..."
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=120s
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/proxy-client --timeout=120s
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=120s']
 
-        echo "Aplicando dependent services..."
-        kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/proxy-client --timeout=120s']
 
-        echo "Esperando dependent deployments..."
-        kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml']
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s']
 
-        echo "Borrando pod temporal de test..."
-        kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found']
+
 
 images:
   - 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA'

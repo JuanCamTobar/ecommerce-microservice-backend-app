@@ -1,6 +1,6 @@
 substitutions:
-  _CLUSTER_NAME: "YOUR_GKE_CLUSTER_NAME"
-  _CLUSTER_ZONE: "YOUR_GKE_CLUSTER_ZONE"
+  _CLUSTER_NAME: "mi-primer-cluster-taller"
+  _CLUSTER_ZONE: "us-central1"
   _NAMESPACE: "stage"
 
 steps:

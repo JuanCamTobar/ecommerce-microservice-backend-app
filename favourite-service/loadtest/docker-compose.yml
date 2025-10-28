@@ -9,12 +9,11 @@ services:
     ports:
       - "8089:8089"
     environment:
-      - TARGET_HOST=http://favourite-service-container:8800
-    command: -f /mnt/locust/locustfile.py --host http://favourite-service-container:8800
+      - TARGET_HOST=${TARGET_HOST:-http://api-gateway-container:8080/favourite-service}
     networks:
       - microservices_network
+    command: -f /mnt/locust/locustfile.py --host ${TARGET_HOST:-http://api-gateway-container:8080/favourite-service}
 
 networks:
   microservices_network:
-    external:
-      name: ecommerce-microservice-backend-app_microservices_network
+    external: true

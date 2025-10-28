@@ -1,0 +1,78 @@
+substitutions:
+  _CLUSTER_NAME: "YOUR_GKE_CLUSTER_NAME"
+  _CLUSTER_ZONE: "YOUR_GKE_CLUSTER_ZONE"
+  _NAMESPACE: "stage"
+
+steps:
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['clean', 'test']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA', '-f', 'api-gateway/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/cloud-config:$SHORT_SHA', '-f', 'cloud-config/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/service-discovery:$SHORT_SHA', '-f', 'service-discovery/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/proxy-client:$SHORT_SHA', '-f', 'proxy-client/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/user-service:$SHORT_SHA', '-f', 'user-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/product-service:$SHORT_SHA', '-f', 'product-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/order-service:$SHORT_SHA', '-f', 'order-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/payment-service:$SHORT_SHA', '-f', 'payment-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/favourite-service:$SHORT_SHA', '-f', 'favourite-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/shipping-service:$SHORT_SHA', '-f', 'shipping-service/Dockerfile', '.']
+
+images:
+  - 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/cloud-config:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/service-discovery:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/proxy-client:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/user-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/product-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/order-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/payment-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/favourite-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/shipping-service:$SHORT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo "Obteniendo credenciales del cluster GKE ${_CLUSTER_NAME}..."
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}
+        kubectl create namespace ${_NAMESPACE} || true
+
+        echo "Sustituyendo placeholders en manifests k8s..."
+        for f in k8s/staging/*.yml; do
+          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f" || true
+          sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f" || true
+        done
+
+        echo "Aplicando manifests en namespace ${_NAMESPACE}..."
+        kubectl apply -n ${_NAMESPACE} -f k8s/staging/
+
+        echo "Esperando que los deployments estén listos..."
+        kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s
+
+        echo "Creando pod temporal para ejecutar pruebas dentro del cluster..."
+        kubectl -n ${_NAMESPACE} run stage-tester --image=curlimages/curl --restart=Never --command -- sleep 3600 || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=ready pod -l run=stage-tester --timeout=60s
+
+        echo "Copiando y ejecutando script de tests..."
+        kubectl -n ${_NAMESPACE} cp k8s/test-runner.sh stage-tester:/test-runner.sh
+        kubectl -n ${_NAMESPACE} exec stage-tester -- chmod +x /test-runner.sh
+        kubectl -n ${_NAMESPACE} exec stage-tester -- /test-runner.sh ${_NAMESPACE}
+
+        echo "Borrando pod temporal de test..."
+        kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found
+
+options:
+  logging: CLOUD_LOGGING_ONLY

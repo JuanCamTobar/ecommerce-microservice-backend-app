@@ -18,7 +18,16 @@ spec:
       containers:
       - name: api-gateway
         image: gcr.io/PROJECT_ID/api-gateway:IMAGE_TAG
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -74,7 +83,16 @@ spec:
         image: gcr.io/PROJECT_ID/proxy-client:IMAGE_TAG
         ports:
         - containerPort: 8900
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -130,7 +148,16 @@ spec:
       containers:
       - name: order-service
         image: gcr.io/PROJECT_ID/order-service:IMAGE_TAG
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -188,7 +215,16 @@ spec:
         image: gcr.io/PROJECT_ID/payment-service:IMAGE_TAG
         ports:
         - containerPort: 8400
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -246,7 +282,16 @@ spec:
         image: gcr.io/PROJECT_ID/product-service:IMAGE_TAG
         ports:
         - containerPort: 8500
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -302,7 +347,16 @@ spec:
       containers:
       - name: shipping-service
         image: gcr.io/PROJECT_ID/shipping-service:IMAGE_TAG
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -358,7 +412,16 @@ spec:
       containers:
       - name: user-service
         image: gcr.io/PROJECT_ID/user-service:IMAGE_TAG
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL
@@ -414,7 +477,16 @@ spec:
       containers:
       - name: favourite-service
         image: gcr.io/PROJECT_ID/favourite-service:IMAGE_TAG
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL

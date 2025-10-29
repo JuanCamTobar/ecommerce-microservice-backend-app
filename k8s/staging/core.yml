@@ -20,6 +20,13 @@ spec:
         image: openzipkin/zipkin
         ports:
         - containerPort: 9411
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -55,7 +62,16 @@ spec:
         image: gcr.io/PROJECT_ID/service-discovery:IMAGE_TAG
         ports:
         - containerPort: 8761
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_ZIPKIN_BASE_URL
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
@@ -95,7 +111,16 @@ spec:
         image: gcr.io/PROJECT_ID/cloud-config:IMAGE_TAG
         ports:
         - containerPort: 9296
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xmx384m"
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
         - name: SPRING_ZIPKIN_BASE_URL

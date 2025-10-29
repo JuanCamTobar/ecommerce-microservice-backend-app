@@ -54,7 +54,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/proxy-client --timeout=120s']
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=120s']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'

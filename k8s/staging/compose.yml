@@ -48,9 +48,7 @@ spec:
   - port: 8080
     targetPort: 8080
 
-# -----------------------------
-# Proxy Client
-# -----------------------------
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:

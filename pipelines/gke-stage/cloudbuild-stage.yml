@@ -46,7 +46,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s']
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=120s']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -54,7 +54,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=120s']
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -62,7 +62,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=300s']
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=900s']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'

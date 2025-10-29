@@ -62,7 +62,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=900s']
+    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1500s']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'

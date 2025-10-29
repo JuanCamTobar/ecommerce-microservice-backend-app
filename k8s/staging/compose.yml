@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: selimhorri/api-gateway-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/api-gateway:IMAGE_TAG
         ports:
         - containerPort: 8080
         env:
@@ -65,7 +65,7 @@ spec:
     spec:
       containers:
       - name: proxy-client
-        image: selimhorri/proxy-client-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/proxy-client:IMAGE_TAG
         ports:
         - containerPort: 8900
         env:
@@ -115,7 +115,7 @@ spec:
     spec:
       containers:
       - name: order-service
-        image: selimhorri/order-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/order-service:IMAGE_TAG
         ports:
         - containerPort: 8300
         env:
@@ -165,7 +165,7 @@ spec:
     spec:
       containers:
       - name: payment-service
-        image: selimhorri/payment-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/payment-service:IMAGE_TAG
         ports:
         - containerPort: 8400
         env:
@@ -215,7 +215,7 @@ spec:
     spec:
       containers:
       - name: product-service
-        image: selimhorri/product-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/product-service:IMAGE_TAG
         ports:
         - containerPort: 8500
         env:
@@ -265,7 +265,7 @@ spec:
     spec:
       containers:
       - name: shipping-service
-        image: selimhorri/shipping-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/shipping-service:IMAGE_TAG
         ports:
         - containerPort: 8600
         env:
@@ -315,7 +315,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: selimhorri/user-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/user-service:IMAGE_TAG
         ports:
         - containerPort: 8700
         env:
@@ -365,7 +365,7 @@ spec:
     spec:
       containers:
       - name: favourite-service
-        image: selimhorri/favourite-service-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/favourite-service:IMAGE_TAG
         ports:
         - containerPort: 8800
         env:

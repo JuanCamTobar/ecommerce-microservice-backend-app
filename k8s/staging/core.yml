@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: service-discovery
-        image: selimhorri/service-discovery-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/service-discovery:IMAGE_TAG
         ports:
         - containerPort: 8761
         env:
@@ -92,7 +92,7 @@ spec:
     spec:
       containers:
       - name: cloud-config
-        image: selimhorri/cloud-config-ecommerce-boot:0.1.0
+        image: gcr.io/PROJECT_ID/cloud-config:IMAGE_TAG
         ports:
         - containerPort: 9296
         env:

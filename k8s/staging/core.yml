@@ -34,7 +34,7 @@ spec:
     targetPort: 9411
 
 # -----------------------------
-# Service Discovery (Eureka)
+# Service Discovery
 # -----------------------------
 apiVersion: apps/v1
 kind: Deployment
@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: service-discovery
-        image: gcr.io/PROJECT_ID/service-discovery:IMAGE_TAG
+        image: gcr.io/PROJECT_ID/service-discovery:IMAGE_TAG 
         ports:
         - containerPort: 8761
         env:
@@ -92,7 +92,7 @@ spec:
     spec:
       containers:
       - name: cloud-config
-        image: gcr.io/PROJECT_ID/cloud-config:IMAGE_TAG
+        image: gcr.io/PROJECT_ID/cloud-config:IMAGE_TAG  
         ports:
         - containerPort: 9296
         env:

@@ -8,6 +8,7 @@ steps:
   - name: 'gcr.io/cloud-builders/mvn'
     args: ['clean', 'verify', '-DskipTests']
 
+
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
@@ -15,9 +16,8 @@ steps:
       - '-c'
       - |
         echo "Autenticando en Docker Hub..."
-        echo "Username length: $${#_DOCKER_USERNAME}"
-        echo "Password length: $${#_DOCKER_PASSWORD}"
         echo "$$_DOCKER_PASSWORD" | docker login -u "$$_DOCKER_USERNAME" --password-stdin
+
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
@@ -29,6 +29,7 @@ steps:
           docker build -t docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA -f $s/Dockerfile .
         done
 
+
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
@@ -39,6 +40,7 @@ steps:
           docker push docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA
         done
 
+ 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
@@ -47,6 +49,7 @@ steps:
         gcloud container clusters get-credentials ${_CLUSTER_NAME} \
           --zone ${_CLUSTER_ZONE} \
           --project ${_PROJECT_ID}
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -61,15 +64,17 @@ steps:
       - |
         for f in k8s/staging/*.yml; do
           sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
-          sed -i "s|PROJECT_ID|juancato/ecomerce-taller|g" "$f"
+          sed -i "s|gcr.io/PROJECT_ID|docker.io/juancato/ecomerce-taller|g" "$f"
         done
 
+ 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
 
+  
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
@@ -79,11 +84,13 @@ steps:
         kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s
         kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s
 
+  
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml'
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -91,11 +98,13 @@ steps:
       - '-c'
       - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1800s'
 
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found'
+
 
 images:
   - 'docker.io/juancato/ecomerce-taller-api-gateway:$SHORT_SHA'

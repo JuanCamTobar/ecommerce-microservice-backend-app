@@ -26,8 +26,12 @@ steps:
   - name: 'docker/compose:1.29.2'
     args: ['-f', 'core.yml', 'up', '-d']
 
-  - name: 'gcr.io/cloud-builders/bash'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
     args: ['-c', 'echo "Esperando 40 segundos antes de levantar los demás servicios..." && sleep 40']
 
   - name: 'docker/compose:1.29.2'
     args: ['-f', 'compose.yml', 'up', '-d']
+
+options:
+  logging: CLOUD_LOGGING_ONLY

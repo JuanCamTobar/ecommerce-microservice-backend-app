@@ -57,8 +57,8 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserDto update(final Integer userId, final UserDto userDto) {
 		log.info("*** UserDto, service; update user with userId *");
-		return UserMappingHelper.map(this.userRepository.save(
-				UserMappingHelper.map(this.findById(userId))));
+		userDto.setUserId(userId);
+		return UserMappingHelper.map(this.userRepository.save(UserMappingHelper.map(userDto)));
 	}
 	
 	@Override

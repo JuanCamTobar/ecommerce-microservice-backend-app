@@ -1,0 +1,114 @@
+substitutions:
+  _CLUSTER_NAME: "mi-primer-cluster-taller"
+  _CLUSTER_ZONE: "us-central1"
+  _NAMESPACE: "stage"
+  _PROJECT_ID: "taller2-ingenieriasoftware"
+
+steps:
+
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['clean', 'verify', '-DskipTests']
+
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
+    args:
+      - '-c'
+      - |
+        echo "Autenticando en Docker Hub..."
+        echo "$$_DOCKER_PASSWORD" | docker login -u "$$_DOCKER_USERNAME" --password-stdin
+
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "Construyendo imagen $s ..."
+          docker build -t docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA -f $s/Dockerfile .
+          echo "Subiendo imagen docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA ..."
+          docker push docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA
+        done
+
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Actualizando manifiestos YAML con el tag ${SHORT_SHA}..."
+        for f in k8s/staging/*.yml; do
+          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
+          sed -i "s|gcr.io/PROJECT_ID|docker.io/juancato/ecomerce-taller|g" "$f"
+        done
+
+ 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      [
+        'gcloud', 'container', 'clusters', 'get-credentials',
+        '${_CLUSTER_NAME}', '--zone', '${_CLUSTER_ZONE}', '--project', '${_PROJECT_ID}'
+      ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl create namespace ${_NAMESPACE} || true']
+
+  
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
+
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=150s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s || true
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml'
+
+  
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1800s'
+
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found']
+
+images:
+  - 'docker.io/juancato/ecomerce-taller-api-gateway:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-cloud-config:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-service-discovery:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-proxy-client:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-user-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-product-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-order-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-payment-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-favourite-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-shipping-service:$SHORT_SHA'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_USERNAME/versions/latest
+      env: '_DOCKER_USERNAME'
+    - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_PASSWORD/versions/latest
+      env: '_DOCKER_PASSWORD'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

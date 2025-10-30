@@ -13,7 +13,7 @@ steps:
       - '-c'
       - |
         for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
-          echo "🔨 Construyendo imagen $s ..."
+          echo "Construyendo imagen $s ..."
           docker build -t gcr.io/$PROJECT_ID/$s:$SHORT_SHA -f $s/Dockerfile .
         done
 
@@ -23,7 +23,17 @@ steps:
       - '-c'
       - |
         for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
-          echo "⬆️ Subiendo imagen gcr.io/$PROJECT_ID/$s:$SHORT_SHA ..."
+          echo "Construyendo imagen $s ..."
+          docker build -t gcr.io/$PROJECT_ID/$s:$SHORT_SHA -f $s/Dockerfile .
+        done
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "Subiendo imagen gcr.io/$PROJECT_ID/$s:$SHORT_SHA ..."
           docker push gcr.io/$PROJECT_ID/$s:$SHORT_SHA
         done
 

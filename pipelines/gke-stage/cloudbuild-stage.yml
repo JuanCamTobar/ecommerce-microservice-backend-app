@@ -8,66 +8,82 @@ steps:
     args: ['clean', 'package', '-DskipTests']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA', '-f', 'api-gateway/Dockerfile', '.']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "🔨 Construyendo imagen $s ..."
+          docker build -t gcr.io/$PROJECT_ID/$s:$SHORT_SHA -f $s/Dockerfile .
+        done
+
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/cloud-config:$SHORT_SHA', '-f', 'cloud-config/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/service-discovery:$SHORT_SHA', '-f', 'service-discovery/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/proxy-client:$SHORT_SHA', '-f', 'proxy-client/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/user-service:$SHORT_SHA', '-f', 'user-service/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/product-service:$SHORT_SHA', '-f', 'product-service/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/order-service:$SHORT_SHA', '-f', 'order-service/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/payment-service:$SHORT_SHA', '-f', 'payment-service/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/favourite-service:$SHORT_SHA', '-f', 'favourite-service/Dockerfile', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/shipping-service:$SHORT_SHA', '-f', 'shipping-service/Dockerfile', '.']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "⬆️ Subiendo imagen gcr.io/$PROJECT_ID/$s:$SHORT_SHA ..."
+          docker push gcr.io/$PROJECT_ID/$s:$SHORT_SHA
+        done
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'gcloud container clusters get-credentials ${_CLUSTER_NAME} --zone ${_CLUSTER_ZONE} --project ${PROJECT_ID}']
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} \
+          --zone ${_CLUSTER_ZONE} \
+          --project ${PROJECT_ID}
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl create namespace ${_NAMESPACE} || true']
+    args:
+      - '-c'
+      - 'kubectl create namespace ${_NAMESPACE} || true'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'for f in k8s/staging/*.yml; do sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"; sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f"; done']
+    args:
+      - '-c'
+      - |
+        for f in k8s/staging/*.yml; do
+          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
+          sed -i "s|PROJECT_ID|${PROJECT_ID}|g" "$f"
+        done
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml']
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=120s']
+    args:
+      - '-c'
+      - |
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=150s
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=120s']
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=120s']
+    args:
+      - '-c'
+      - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1800s'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml']
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1500s']
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args: ['-c', 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found']
-
+    args:
+      - '-c'
+      - 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found'
 
 images:
   - 'gcr.io/$PROJECT_ID/api-gateway:$SHORT_SHA'

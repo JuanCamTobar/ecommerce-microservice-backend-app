@@ -15,7 +15,9 @@ steps:
       - '-c'
       - |
         echo "Autenticando en Docker Hub..."
-        echo "$_DOCKER_PASSWORD" | docker login -u "$_DOCKER_USERNAME" --password-stdin
+        echo "Username length: $${#_DOCKER_USERNAME}"
+        echo "Password length: $${#_DOCKER_PASSWORD}"
+        echo "$$_DOCKER_PASSWORD" | docker login -u "$$_DOCKER_USERNAME" --password-stdin
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'

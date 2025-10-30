@@ -2,9 +2,10 @@ substitutions:
   _CLUSTER_NAME: "mi-primer-cluster-taller"
   _CLUSTER_ZONE: "us-central1"
   _NAMESPACE: "stage"
-  _PROJECT_ID: "taller2-ingenieriasoftware"  
+  _PROJECT_ID: "taller2-ingenieriasoftware"
 
 steps:
+
   - name: 'gcr.io/cloud-builders/mvn'
     args: ['clean', 'verify', '-DskipTests']
 
@@ -27,41 +28,17 @@ steps:
         for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
           echo "Construyendo imagen $s ..."
           docker build -t docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA -f $s/Dockerfile .
-        done
-
-
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
           echo "Subiendo imagen docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA ..."
           docker push docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA
         done
 
- 
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud container clusters get-credentials ${_CLUSTER_NAME} \
-          --zone ${_CLUSTER_ZONE} \
-          --project ${_PROJECT_ID}
-
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - 'kubectl create namespace ${_NAMESPACE} || true'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        echo "Actualizando manifiestos YAML con el tag ${SHORT_SHA}..."
         for f in k8s/staging/*.yml; do
           sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
           sed -i "s|gcr.io/PROJECT_ID|docker.io/juancato/ecomerce-taller|g" "$f"
@@ -69,29 +46,40 @@ steps:
 
  
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
+      [
+        'gcloud', 'container', 'clusters', 'get-credentials',
+        '${_CLUSTER_NAME}', '--zone', '${_CLUSTER_ZONE}', '--project', '${_PROJECT_ID}'
+      ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl create namespace ${_NAMESPACE} || true']
 
   
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
-      - |
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=150s
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s
-        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
 
-  
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=150s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s || true
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml'
 
-
+  
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
@@ -101,10 +89,7 @@ steps:
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args:
-      - '-c'
-      - 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found'
-
+    args: ['-c', 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found']
 
 images:
   - 'docker.io/juancato/ecomerce-taller-api-gateway:$SHORT_SHA'

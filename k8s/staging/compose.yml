@@ -17,7 +17,9 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: gcr.io/PROJECT_ID/api-gateway:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-api-gateway:IMAGE_TAG
+        ports:
+        - containerPort: 8080
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -25,22 +27,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -54,7 +42,9 @@ spec:
   - port: 8080
     targetPort: 8080
 
-
+# -----------------------------
+# Proxy Client
+# -----------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -71,7 +61,7 @@ spec:
     spec:
       containers:
       - name: proxy-client
-        image: gcr.io/PROJECT_ID/proxy-client:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-proxy-client:IMAGE_TAG
         ports:
         - containerPort: 8900
         env:
@@ -81,22 +71,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -129,7 +105,9 @@ spec:
     spec:
       containers:
       - name: order-service
-        image: gcr.io/PROJECT_ID/order-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-order-service:IMAGE_TAG
+        ports:
+        - containerPort: 8300
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -137,22 +115,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -185,7 +149,7 @@ spec:
     spec:
       containers:
       - name: payment-service
-        image: gcr.io/PROJECT_ID/payment-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-payment-service:IMAGE_TAG
         ports:
         - containerPort: 8400
         env:
@@ -195,22 +159,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -243,7 +193,7 @@ spec:
     spec:
       containers:
       - name: product-service
-        image: gcr.io/PROJECT_ID/product-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-product-service:IMAGE_TAG
         ports:
         - containerPort: 8500
         env:
@@ -253,22 +203,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -301,7 +237,9 @@ spec:
     spec:
       containers:
       - name: shipping-service
-        image: gcr.io/PROJECT_ID/shipping-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-shipping-service:IMAGE_TAG
+        ports:
+        - containerPort: 8600
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -309,22 +247,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -357,7 +281,9 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: gcr.io/PROJECT_ID/user-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-user-service:IMAGE_TAG
+        ports:
+        - containerPort: 8700
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -365,22 +291,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service
@@ -413,7 +325,9 @@ spec:
     spec:
       containers:
       - name: favourite-service
-        image: gcr.io/PROJECT_ID/favourite-service:IMAGE_TAG
+        image: docker.io/juancato/ecomerce-taller-favourite-service:IMAGE_TAG
+        ports:
+        - containerPort: 8800
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -421,22 +335,8 @@ spec:
           value: "http://zipkin:9411"
         - name: SPRING_CONFIG_IMPORT
           value: "optional:configserver:http://cloud-config:9296/"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
         - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
           value: "http://service-discovery:8761/eureka"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
-        - name: SPRING_DATASOURCE_DRIVERCLASSNAME
-          value: "org.h2.Driver"
-        - name: SPRING_JPA_DATABASE-PLATFORM
-          value: "org.hibernate.dialect.H2Dialect"
-        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-          value: "update"
 ---
 apiVersion: v1
 kind: Service

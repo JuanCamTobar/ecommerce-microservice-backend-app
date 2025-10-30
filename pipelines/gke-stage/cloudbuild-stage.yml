@@ -2,7 +2,7 @@ substitutions:
   _CLUSTER_NAME: "mi-primer-cluster-taller"
   _CLUSTER_ZONE: "us-central1"
   _NAMESPACE: "stage"
-  _PROJECT_ID: "taller2-ingenieriasoftware"  # 👈 reemplázalo si tu ID de proyecto es diferente
+  _PROJECT_ID: "taller2-ingenieriasoftware"  
 
 steps:
   - name: 'gcr.io/cloud-builders/mvn'
@@ -10,12 +10,12 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME', 'DOCKER_PASSWORD']
+    secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
     args:
       - '-c'
       - |
         echo "Autenticando en Docker Hub..."
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        echo "$_DOCKER_PASSWORD" | docker login -u "$_DOCKER_USERNAME" --password-stdin
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
@@ -110,9 +110,9 @@ images:
 availableSecrets:
   secretManager:
     - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_USERNAME/versions/latest
-      env: 'DOCKER_USERNAME'
+      env: '_DOCKER_USERNAME'
     - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_PASSWORD/versions/latest
-      env: 'DOCKER_PASSWORD'
+      env: '_DOCKER_PASSWORD'
 
 options:
   logging: CLOUD_LOGGING_ONLY

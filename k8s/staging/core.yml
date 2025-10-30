@@ -16,10 +16,10 @@ spec:
         app: zipkin
     spec:
       containers:
-      - name: zipkin
-        image: openzipkin/zipkin
-        ports:
-        - containerPort: 9411
+        - name: zipkin
+          image: openzipkin/zipkin
+          ports:
+            - containerPort: 9411
 ---
 apiVersion: v1
 kind: Service
@@ -30,8 +30,8 @@ spec:
   selector:
     app: zipkin
   ports:
-  - port: 9411
-    targetPort: 9411
+    - port: 9411
+      targetPort: 9411
 
 # -----------------------------
 # Service Discovery
@@ -51,15 +51,15 @@ spec:
         app: service-discovery
     spec:
       containers:
-      - name: service-discovery
-        image: gcr.io/PROJECT_ID/service-discovery:IMAGE_TAG 
-        ports:
-        - containerPort: 8761
-        env:
-        - name: SPRING_ZIPKIN_BASE_URL
-          value: "http://zipkin:9411"
-        - name: SPRING_CONFIG_IMPORT
-          value: "optional:configserver:http://cloud-config:9296/"
+        - name: service-discovery
+          image: docker.io/juancato/ecomerce-taller-service-discovery:IMAGE_TAG
+          ports:
+            - containerPort: 8761
+          env:
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: "http://zipkin:9411"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://cloud-config:9296/"
 ---
 apiVersion: v1
 kind: Service
@@ -70,8 +70,8 @@ spec:
   selector:
     app: service-discovery
   ports:
-  - port: 8761
-    targetPort: 8761
+    - port: 8761
+      targetPort: 8761
 
 # -----------------------------
 # Cloud Config
@@ -91,23 +91,23 @@ spec:
         app: cloud-config
     spec:
       containers:
-      - name: cloud-config
-        image: gcr.io/PROJECT_ID/cloud-config:IMAGE_TAG  
-        ports:
-        - containerPort: 9296
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "dev"
-        - name: SPRING_ZIPKIN_BASE_URL
-          value: "http://zipkin:9411"
-        - name: EUREKA_CLIENT_REGION
-          value: "default"
-        - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
-          value: "myzone"
-        - name: EUREKA_CLIENT_SERVICEURL_MYZONE
-          value: "http://service-discovery:8761/eureka"
-        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-          value: "http://service-discovery:8761/eureka"
+        - name: cloud-config
+          image: docker.io/juancato/ecomerce-taller-cloud-config:IMAGE_TAG
+          ports:
+            - containerPort: 9296
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev"
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: "http://zipkin:9411"
+            - name: EUREKA_CLIENT_REGION
+              value: "default"
+            - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+              value: "myzone"
+            - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+              value: "http://service-discovery:8761/eureka"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://service-discovery:8761/eureka"
 ---
 apiVersion: v1
 kind: Service
@@ -118,5 +118,5 @@ spec:
   selector:
     app: cloud-config
   ports:
-  - port: 9296
-    targetPort: 9296
+    - port: 9296
+      targetPort: 9296

@@ -7,15 +7,6 @@ steps:
   - name: 'gcr.io/cloud-builders/mvn'
     args: ['clean', 'package', '-DskipTests']
 
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
-          echo "Construyendo imagen $s ..."
-          docker build -t gcr.io/$PROJECT_ID/$s:$SHORT_SHA -f $s/Dockerfile .
-        done
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
@@ -26,6 +17,14 @@ steps:
           echo "Construyendo imagen $s ..."
           docker build -t gcr.io/$PROJECT_ID/$s:$SHORT_SHA -f $s/Dockerfile .
         done
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Autenticando Docker con GCR..."
+        gcloud auth configure-docker gcr.io -q
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'

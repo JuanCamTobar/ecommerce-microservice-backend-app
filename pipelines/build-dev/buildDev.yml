@@ -1,0 +1,37 @@
+steps:
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['clean', 'package', '-DskipTests']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/api-gateway', '-f', 'api-gateway/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/cloud-config', '-f', 'cloud-config/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/service-discovery', '-f', 'service-discovery/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/proxy-client', '-f', 'proxy-client/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/user-service', '-f', 'user-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/product-service', '-f', 'product-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/order-service', '-f', 'order-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/payment-service', '-f', 'payment-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/favourite-service', '-f', 'favourite-service/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/shipping-service', '-f', 'shipping-service/Dockerfile', '.']
+
+  - name: 'docker/compose:1.29.2'
+    args: ['-f', 'core.yml', 'up', '-d']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'echo "Esperando 40 segundos antes de levantar los demás servicios..." && sleep 40']
+
+  - name: 'docker/compose:1.29.2'
+    args: ['-f', 'compose.yml', 'up', '-d']
+
+options:
+  logging: CLOUD_LOGGING_ONLY

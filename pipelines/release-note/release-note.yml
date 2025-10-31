@@ -64,3 +64,6 @@ steps:
         BRANCH_NAME_TO_USE=${_BRANCH_NAME:-$BRANCH_NAME}
 
         gsutil cp /workspace/release_notes.md gs://${PROJECT_ID_TO_USE}-release-notes/${BRANCH_NAME_TO_USE}/release_notes_${NEW_TAG}.md || echo "No se pudo subir el archivo a GCS"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

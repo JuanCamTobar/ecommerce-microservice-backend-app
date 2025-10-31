@@ -226,7 +226,7 @@ class UserE2ETest {
         ResponseEntity<UserDto> getById = this.restTemplate.getForEntity(
                 "/api/users/{id}",
                 UserDto.class,
-                created.getUserId());
+                created.getUserId());   
         assertThat(getById.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(getById.getBody().getFirstName()).isEqualTo("Pedro");
 

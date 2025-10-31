@@ -1,0 +1,66 @@
+substitutions:
+  _PROJECT_ID: ""
+  _BRANCH_NAME: ""
+
+steps:
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'Generate Release Notes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Iniciando generación automática de Release Notes..."
+        echo "==================================================="
+
+        BRANCH_NAME_TO_USE=${BRANCH_NAME:-${_BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD)}}
+        COMMIT_ID=$(git rev-parse --short HEAD || echo "no-commit")
+        BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
+        git fetch --unshallow || echo "Repositorio ya completo"
+        git fetch --tags || echo "No se encontraron tags remotos"
+
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        NEW_TAG="v$(date +%Y%m%d%H%M)"
+
+        # Guardar NEW_TAG para el siguiente paso
+        echo "export NEW_TAG=$NEW_TAG" > /workspace/vars.env
+
+        echo "Último tag encontrado: $LAST_TAG"
+        echo "Nuevo tag a crear: $NEW_TAG"
+        echo "Rama actual: $BRANCH_NAME_TO_USE"
+        echo "Commit actual: $COMMIT_ID"
+
+        RELEASE_FILE="/workspace/release_notes_${NEW_TAG}.md"
+        echo "Release Notes - $NEW_TAG" > $RELEASE_FILE
+        echo "Fecha de despliegue: $BUILD_DATE" >> $RELEASE_FILE
+        echo "Rama: $BRANCH_NAME_TO_USE" >> $RELEASE_FILE
+        echo "Commit: $COMMIT_ID" >> $RELEASE_FILE
+        echo "" >> $RELEASE_FILE
+
+        echo "Cambios incluidos:" >> $RELEASE_FILE
+        git log $LAST_TAG..HEAD --pretty=format:"- %s (%an)" >> $RELEASE_FILE || echo "- Sin cambios detectados." >> $RELEASE_FILE
+
+        echo "" >> $RELEASE_FILE
+        echo "==================================================="
+        cat $RELEASE_FILE
+        echo "==================================================="
+
+        git tag -a $NEW_TAG -m "Release $NEW_TAG generado automáticamente por Cloud Build"
+        git push origin $NEW_TAG || echo "No se pudo subir el tag (verifique permisos o token GitHub/GitLab)."
+
+        cp $RELEASE_FILE /workspace/release_notes.md
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Upload Release Notes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Cargar las variables del paso anterior
+        source /workspace/vars.env
+        
+        echo "Subiendo Release Notes a Cloud Storage..."
+        PROJECT_ID_TO_USE=${_PROJECT_ID:-$PROJECT_ID}
+        BRANCH_NAME_TO_USE=${_BRANCH_NAME:-$BRANCH_NAME}
+
+        gsutil cp /workspace/release_notes.md gs://${PROJECT_ID_TO_USE}-release-notes/${BRANCH_NAME_TO_USE}/release_notes_${NEW_TAG}.md || echo "No se pudo subir el archivo a GCS"

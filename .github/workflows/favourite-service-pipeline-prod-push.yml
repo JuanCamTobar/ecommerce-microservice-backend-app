@@ -6,8 +6,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build_push:
-    #needs: build
+  build_push_deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -17,7 +16,9 @@ jobs:
         java-version: '11'
         distribution: 'adopt'
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package --file pom.xml -DskipTests # Skip tests during package, run explicitly later
+    - name: Run Unit Tests
+      run: mvn -B test --file pom.xml
     - name: Setup env variables for Docker
       run: echo Setup env variables for Docker
       env:
@@ -29,5 +30,25 @@ jobs:
       run: docker build -f favourite-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/favourite-service-ecommerce-boot:${{ secrets.PROJECT_VERSION }} .
     - name: Push favourite-service-ecommerce-boot image
       run: docker push ${{ secrets.DOCKER_USERNAME }}/favourite-service-ecommerce-boot:${{ secrets.PROJECT_VERSION }}
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Run Load Tests
+      working-directory: favourite-service/loadtest
+      run: |
+        docker-compose pull
+        docker-compose up -d
+        # Give Locust some time to start and run tests. Adjust sleep duration as needed.
+        echo "Waiting for load tests to run for 60 seconds..."
+        sleep 60
+        docker-compose down
+    - name: Deploy to Kubernetes
+      uses: azure/k8s-set-context@v1 # Assuming Azure Kubernetes Service based on azure-pipelines.yml
+      with:
+        kubeconfig: ${{ secrets.KUBECONFIG }} # Kubeconfig secret
+    - run: kubectl apply -f k8s/staging/favourite-service-deployment.yaml
+    - name: Generate Release Notes
+      uses: release-drafter/release-drafter@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 

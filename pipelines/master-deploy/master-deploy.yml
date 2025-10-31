@@ -1,0 +1,84 @@
+substitutions:
+  _CLUSTER_NAME: "mi-primer-cluster-taller"
+  _CLUSTER_ZONE: "us-central1"
+  _NAMESPACE: "stage"
+  _PROJECT_ID: "taller2-ingenieriasoftware"
+  _DOCKER_USER: "juancato"
+  _REPO: "ecomerce-taller"
+
+steps:
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['clean', 'verify']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "Construyendo imagen $s..."
+          docker build -t docker.io/${_DOCKER_USER}/${_REPO}-${s}:${SHORT_SHA} -f $s/Dockerfile .
+        done
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
+    args:
+      - '-c'
+      - |
+        echo "$$_DOCKER_PASSWORD" | docker login -u "$$_DOCKER_USERNAME" --password-stdin
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          docker push docker.io/${_DOCKER_USER}/${_REPO}-${s}:${SHORT_SHA}
+        done
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Ejecutando pruebas de carga..."
+        docker run --rm -v $PWD/favourite-service/loadtest:/tests artilleryio/artillery run /tests/loadtest.yml
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} \
+          --zone ${_CLUSTER_ZONE} \
+          --project ${_PROJECT_ID}
+        echo "Actualizando manifiestos con el tag ${SHORT_SHA}..."
+        for f in k8s/staging/*.yml; do
+          sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
+          sed -i "s|gcr.io/PROJECT_ID|docker.io/${_DOCKER_USER}/${_REPO}|g" "$f"
+        done
+        kubectl apply -n ${_NAMESPACE} -f k8s/staging/
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=900s'
+
+
+images:
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-api-gateway:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-cloud-config:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-service-discovery:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-proxy-client:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-user-service:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-product-service:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-order-service:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-payment-service:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-favourite-service:$SHORT_SHA'
+  - 'docker.io/${_DOCKER_USER}/${_REPO}-shipping-service:$SHORT_SHA'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_USERNAME/versions/latest
+      env: '_DOCKER_USERNAME'
+    - versionName: projects/${_PROJECT_ID}/secrets/DOCKER_PASSWORD/versions/latest
+      env: '_DOCKER_PASSWORD'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

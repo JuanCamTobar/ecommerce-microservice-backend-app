@@ -5,7 +5,7 @@ services:
     image: selimhorri/api-gateway-ecommerce-boot:0.1.0
     ports:
       - 8080:8080
-    networks:
+    networks:w
       - microservices_network
     environment:
       - SPRING_PROFILES_ACTIVE=dev

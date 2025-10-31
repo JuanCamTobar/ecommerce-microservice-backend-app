@@ -7,7 +7,7 @@ substitutions:
 steps:
 
   - name: 'gcr.io/cloud-builders/mvn'
-    args: ['clean', 'verify', '-DskipTests']
+    args: ['clean', 'verify']
 
 
   - name: 'gcr.io/cloud-builders/docker'

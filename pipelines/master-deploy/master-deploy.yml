@@ -1,7 +1,7 @@
 substitutions:
   _CLUSTER_NAME: "mi-primer-cluster-taller"
   _CLUSTER_ZONE: "us-central1"
-  _NAMESPACE: "stage"
+  _NAMESPACE: "master-deploy"
   _PROJECT_ID: "taller2-ingenieriasoftware"
 
 steps:

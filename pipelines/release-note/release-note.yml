@@ -1,6 +1,10 @@
 substitutions:
-  _PROJECT_ID: ""
-  _BRANCH_NAME: ""
+  _CLUSTER_NAME: "mi-primer-cluster-taller"
+  _CLUSTER_ZONE: "us-central1"
+  _NAMESPACE: "stage"
+  _PROJECT_ID: "taller2-ingenieriasoftware"
+  _DOCKER_USER: "juancato"
+  _REPO: "ecomerce-taller" 
 
 steps:
   - name: 'gcr.io/cloud-builders/git'
@@ -16,7 +20,7 @@ steps:
         COMMIT_ID=$(git rev-parse --short HEAD || echo "no-commit")
         BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S")
 
-        git fetch --unshallow || echo "Repositorio ya completo"
+        git fetch --unshallow || echo "Repositorio ya completo o no es shallow"
         git fetch --tags || echo "No se encontraron tags remotos"
 
         LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -45,13 +49,23 @@ steps:
         cat $RELEASE_FILE
         echo "==================================================="
 
-        git tag -a $NEW_TAG -m "Release $NEW_TAG generado automáticamente por Cloud Build"
-        git push origin $NEW_TAG || echo "No se pudo subir el tag (verifique permisos o token GitHub/GitLab)."
+        # Opcional: Configurar auth para git push si usas un secret (e.g., GIT_TOKEN de Secret Manager)
+        # git config --global url."https://${GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+        # Descomenta y agrega secretEnv abajo si es necesario.
+
+        if git rev-parse $NEW_TAG >/dev/null 2>&1; then
+          echo "Tag $NEW_TAG ya existe, omitiendo creación."
+        else
+          git tag -a $NEW_TAG -m "Release $NEW_TAG generado automáticamente por Cloud Build"
+          git push origin $NEW_TAG || echo "No se pudo subir el tag (verifique permisos, service account o token)."
+        fi
 
         cp $RELEASE_FILE /workspace/release_notes.md
 
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Upload Release Notes'
+    waitFor: ['Generate Release Notes']  
     entrypoint: 'bash'
     args:
       - '-c'
@@ -60,8 +74,8 @@ steps:
         source /workspace/vars.env
         
         echo "Subiendo Release Notes a Cloud Storage..."
-
-        gsutil cp /workspace/release_notes.md gs://${_PROJECT_ID:-$PROJECT_ID}-release-notes/${_BRANCH_NAME:-$BRANCH_NAME}/release_notes_$${NEW_TAG}.md || echo "No se pudo subir el archivo a GCS"
+        BUCKET="gs://${_PROJECT_ID:-$PROJECT_ID}-release-notes/${_BRANCH_NAME:-$BRANCH_NAME}/release_notes_$${NEW_TAG}.md"
+        gsutil cp /workspace/release_notes.md $BUCKET || echo "No se pudo subir el archivo a GCS (verifique si el bucket existe y permisos del service account)."
 
 options:
   logging: CLOUD_LOGGING_ONLY

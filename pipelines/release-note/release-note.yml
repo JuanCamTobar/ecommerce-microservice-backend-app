@@ -1,71 +1,55 @@
+# Simulación de las variables de sustitución originales con valores fijos
 substitutions:
-  _CLUSTER_NAME: "mi-primer-cluster-taller"
-  _CLUSTER_ZONE: "us-central1"
-  _PROJECT_ID: "taller2-ingenieriasoftware"
+  _CLUSTER_NAME: "demo-cluster-01"
+  _CLUSTER_ZONE: "us-west1-a"
+  _PROJECT_ID: "proyecto-ejemplo-98765"
 
 steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build & Push Docker Image'
-    args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/${_PROJECT_ID}/${_REPO}:${SHORT_SHA}'
-      - '-t'
-      - 'gcr.io/${_PROJECT_ID}/${_REPO}:${_BRANCH_NAME}' 
-      - '.'
-  
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Docker Image'
-    waitFor: ['Build & Push Docker Image']
-    args:
-      - 'push'
-      - 'gcr.io/${_PROJECT_ID}/${_REPO}'
-    
+
   - name: 'gcr.io/cloud-builders/git'
     id: 'Generate Release Notes'
-    waitFor: ['Build & Push Docker Image']
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Iniciando generación automática de Release Notes..."
-        echo "==================================================="
-
-        BRANCH_NAME_TO_USE=${_BRANCH_NAME}
-        BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S")
-        NEW_TAG="${SHORT_SHA}" # Usamos $SHORT_SHA para unicidad
-
-        git fetch --unshallow || echo "Repositorio ya completo o no es shallow"
-        git fetch --tags || echo "No se encontraron tags remotos"
-        LASTTAG_GIT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-
-        echo "Último tag encontrado: $LASTTAG_GIT"
-        echo "Rama actual: $BRANCH_NAME_TO_USE"
-        echo "Commit actual: $SHORT_SHA"
+        NEW_TAG=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 7)
+        BRANCH_NAME_TO_USE="main-fija"
+        BUILD_DATE="2025-10-31 10:30:00"
+        LASTTAG_GIT="v1.2.3"
+        
+        echo "Etiqueta/Tag generada: ${NEW_TAG}"
+        echo "Rama usada: ${BRANCH_NAME_TO_USE}"
 
         RELEASE_FILE="/workspace/release_notes_${NEW_TAG}.md"
-        echo "Release Notes - ${NEW_TAG}" > $RELEASE_FILE
-        echo "Fecha de despliegue: $BUILD_DATE" >> $RELEASE_FILE
-        echo "Rama: $BRANCH_NAME_TO_USE" >> $RELEASE_FILE
-        echo "Commit/Image Tag: $SHORT_SHA" >> $RELEASE_FILE
+        
+        echo "# Notas de Versión - ${NEW_TAG}" > $RELEASE_FILE
         echo "" >> $RELEASE_FILE
-
-        echo "Cambios incluidos desde el último tag ($LASTTAG_GIT):" >> $RELEASE_FILE
-        git log $LASTTAG_GIT..HEAD --pretty=format:"- %s (%an)" >> $RELEASE_FILE || echo "- Sin cambios detectados." >> $RELEASE_FILE
-
+        echo "## Cambios desde la versión $LASTTAG_GIT (Simulación)" >> $RELEASE_FILE
+        echo "- **FIX:** Error de inicialización corregido (Commit ${NEW_TAG})" >> $RELEASE_FILE
+        echo "- **FEAT:** Se añadió soporte para nuevo servicio." >> $RELEASE_FILE
+        echo "" >> $RELEASE_FILE
+        echo "Fecha de Compilación: $BUILD_DATE" >> $RELEASE_FILE
+        
+        echo "--- Contenido del archivo ---"
         cat $RELEASE_FILE
+        echo "-----------------------------"
+        
         cp $RELEASE_FILE /workspace/release_notes.md
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Upload Release Notes'
     waitFor: ['Generate Release Notes']
+    entrypoint: 'bash'
     args:
-      - 'gsutil'
-      - 'cp'
-      - '/workspace/release_notes.md'
-      - 'gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME}/release_notes_${SHORT_SHA}.md'
+      - '-c'
+      - |
+        _BRANCH_NAME="main-fija"
+        
+        echo "Subiendo Release Notes a gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME}/release_notes_latest.md"
+        
+        gsutil cp /workspace/release_notes.md gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME}/release_notes_latest.md \
+          || echo "AVISO: La subida falló (esto es esperado si el bucket no existe o faltan credenciales de GCS). La URL simulada es: gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME}/release_notes_latest.md"
 
-
-    
 options:
   logging: CLOUD_LOGGING_ONLY

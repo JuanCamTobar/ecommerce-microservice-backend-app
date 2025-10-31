@@ -4,7 +4,7 @@ substitutions:
   _NAMESPACE: "stage"
   _PROJECT_ID: "taller2-ingenieriasoftware"
   _DOCKER_USER: "juancato"
-  _REPO: "ecomerce-taller" 
+  _REPO: "ecomerce-taller"
 
 steps:
   - name: 'gcr.io/cloud-builders/git'
@@ -19,22 +19,18 @@ steps:
         BRANCH_NAME_TO_USE=${BRANCH_NAME:-${_BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD)}}
         COMMIT_ID=$(git rev-parse --short HEAD || echo "no-commit")
         BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S")
-        NEW_TAG="latest"
-
-        echo "export NEW_TAG=$NEW_TAG" > /workspace/vars.env
+        NEW_TAG="latest"  # Usamos valor fijo
 
         git fetch --unshallow || echo "Repositorio ya completo o no es shallow"
         git fetch --tags || echo "No se encontraron tags remotos"
-
         LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
         echo "Último tag encontrado: $LAST_TAG"
-        echo "Usando etiqueta estática: $NEW_TAG"
         echo "Rama actual: $BRANCH_NAME_TO_USE"
         echo "Commit actual: $COMMIT_ID"
 
         RELEASE_FILE="/workspace/release_notes_${NEW_TAG}.md"
-        echo "Release Notes - $NEW_TAG" > $RELEASE_FILE
+        echo "Release Notes - ${NEW_TAG}" > $RELEASE_FILE
         echo "Fecha de despliegue: $BUILD_DATE" >> $RELEASE_FILE
         echo "Rama: $BRANCH_NAME_TO_USE" >> $RELEASE_FILE
         echo "Commit: $COMMIT_ID" >> $RELEASE_FILE
@@ -43,11 +39,7 @@ steps:
         echo "Cambios incluidos desde el último tag ($LAST_TAG):" >> $RELEASE_FILE
         git log $LAST_TAG..HEAD --pretty=format:"- %s (%an)" >> $RELEASE_FILE || echo "- Sin cambios detectados." >> $RELEASE_FILE
 
-        echo "" >> $RELEASE_FILE
-        echo "==================================================="
         cat $RELEASE_FILE
-        echo "==================================================="
-
         cp $RELEASE_FILE /workspace/release_notes.md
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -57,12 +49,9 @@ steps:
     args:
       - '-c'
       - |
-        source /workspace/vars.env
-
         echo "Subiendo Release Notes a Cloud Storage..."
-        BUCKET="gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME:-$BRANCH_NAME}/release_notes_${NEW_TAG}.md"
-
-        gsutil cp /workspace/release_notes.md $BUCKET || echo "No se pudo subir el archivo a GCS (verifique si el bucket existe y permisos del service account)."
+        gsutil cp /workspace/release_notes.md gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME:-$BRANCH_NAME}/release_notes_latest.md \
+          || echo "No se pudo subir el archivo a GCS (verifique permisos o existencia del bucket)."
 
 options:
   logging: CLOUD_LOGGING_ONLY

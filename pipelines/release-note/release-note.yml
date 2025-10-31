@@ -1,10 +1,7 @@
 substitutions:
   _CLUSTER_NAME: "mi-primer-cluster-taller"
   _CLUSTER_ZONE: "us-central1"
-  _NAMESPACE: "stage"
   _PROJECT_ID: "taller2-ingenieriasoftware"
-  _DOCKER_USER: "juancato"
-  _REPO: "ecomerce-taller"
 
 steps:
   - name: 'gcr.io/cloud-builders/git'
@@ -13,32 +10,19 @@ steps:
     args:
       - '-c'
       - |
-        echo "Iniciando generación automática de Release Notes..."
-        echo "==================================================="
-
-        BRANCH_NAME_TO_USE=${BRANCH_NAME:-${_BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD)}}
+        BRANCH_NAME_TO_USE=${_BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD)}
         COMMIT_ID=$(git rev-parse --short HEAD || echo "no-commit")
         BUILD_DATE=$(date +"%Y-%m-%d %H:%M:%S")
-        NEW_TAG="latest"  # Usamos valor fijo
+        NEW_TAG="${COMMIT_ID}" # Usar el SHA corto como tag para unicidad
 
         git fetch --unshallow || echo "Repositorio ya completo o no es shallow"
         git fetch --tags || echo "No se encontraron tags remotos"
-        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        LASTTAG_GIT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
-        echo "Último tag encontrado: $LAST_TAG"
-        echo "Rama actual: $BRANCH_NAME_TO_USE"
-        echo "Commit actual: $COMMIT_ID"
-
+        
         RELEASE_FILE="/workspace/release_notes_${NEW_TAG}.md"
         echo "Release Notes - ${NEW_TAG}" > $RELEASE_FILE
-        echo "Fecha de despliegue: $BUILD_DATE" >> $RELEASE_FILE
-        echo "Rama: $BRANCH_NAME_TO_USE" >> $RELEASE_FILE
-        echo "Commit: $COMMIT_ID" >> $RELEASE_FILE
-        echo "" >> $RELEASE_FILE
-
-        echo "Cambios incluidos desde el último tag ($LAST_TAG):" >> $RELEASE_FILE
-        git log $LAST_TAG..HEAD --pretty=format:"- %s (%an)" >> $RELEASE_FILE || echo "- Sin cambios detectados." >> $RELEASE_FILE
-
+        git log $LASTTAG_GIT..HEAD --pretty=format:"- %s (%an)" >> $RELEASE_FILE || echo "- Sin cambios detectados." >> $RELEASE_FILE
         cat $RELEASE_FILE
         cp $RELEASE_FILE /workspace/release_notes.md
 
@@ -50,8 +34,9 @@ steps:
       - '-c'
       - |
         echo "Subiendo Release Notes a Cloud Storage..."
-        gsutil cp /workspace/release_notes.md gs://${_PROJECT_ID}-release-notes/${_BRANCH_NAME:-$BRANCH_NAME}/release_notes_latest.md \
+        gsutil cp /workspace/release_notes.md gs://${_PROJECT_ID}-release-notes/$_BRANCH_NAME/release_notes_latest.md \
           || echo "No se pudo subir el archivo a GCS (verifique permisos o existencia del bucket)."
+
 
 options:
   logging: CLOUD_LOGGING_ONLY

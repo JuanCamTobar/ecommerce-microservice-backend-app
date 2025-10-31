@@ -1,24 +1,14 @@
 substitutions:
   _CLUSTER_NAME: "mi-primer-cluster-taller"
   _CLUSTER_ZONE: "us-central1"
-  _NAMESPACE: "stage"
+  _NAMESPACE: "master-deploy"
   _PROJECT_ID: "taller2-ingenieriasoftware"
-  _DOCKER_USER: "juancato"
-  _REPO: "ecomerce-taller"
 
 steps:
+
   - name: 'gcr.io/cloud-builders/mvn'
     args: ['clean', 'verify']
 
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
-          echo "Construyendo imagen $s..."
-          docker build -t docker.io/${_DOCKER_USER}/${_REPO}-${s}:${SHORT_SHA} -f $s/Dockerfile .
-        done
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
@@ -26,52 +16,92 @@ steps:
     args:
       - '-c'
       - |
+        echo "Autenticando en Docker Hub..."
         echo "$$_DOCKER_PASSWORD" | docker login -u "$$_DOCKER_USERNAME" --password-stdin
-        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
-          docker push docker.io/${_DOCKER_USER}/${_REPO}-${s}:${SHORT_SHA}
-        done
+
 
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Ejecutando pruebas de carga..."
-        docker run --rm -v $PWD/favourite-service/loadtest:/tests artilleryio/artillery run /tests/loadtest.yml
+        for s in api-gateway cloud-config service-discovery proxy-client user-service product-service order-service payment-service favourite-service shipping-service; do
+          echo "Construyendo imagen $s ..."
+          docker build -t docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA -f $s/Dockerfile .
+          echo "Subiendo imagen docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA ..."
+          docker push docker.io/juancato/ecomerce-taller-$s:$SHORT_SHA
+        done
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        gcloud container clusters get-credentials ${_CLUSTER_NAME} \
-          --zone ${_CLUSTER_ZONE} \
-          --project ${_PROJECT_ID}
-        echo "Actualizando manifiestos con el tag ${SHORT_SHA}..."
+        echo "Actualizando manifiestos YAML con el tag ${SHORT_SHA}..."
         for f in k8s/staging/*.yml; do
           sed -i "s|IMAGE_TAG|${SHORT_SHA}|g" "$f"
-          sed -i "s|gcr.io/PROJECT_ID|docker.io/${_DOCKER_USER}/${_REPO}|g" "$f"
+          sed -i "s|gcr.io/PROJECT_ID|docker.io/juancato/ecomerce-taller|g" "$f"
         done
-        kubectl apply -n ${_NAMESPACE} -f k8s/staging/
+
+ 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      [
+        'gcloud', 'container', 'clusters', 'get-credentials',
+        '${_CLUSTER_NAME}', '--zone', '${_CLUSTER_ZONE}', '--project', '${_PROJECT_ID}'
+      ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl create namespace ${_NAMESPACE} || true']
+
+  
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/core.yml'
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=900s'
+      - |
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/zipkin --timeout=150s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/service-discovery --timeout=180s || true
+        kubectl -n ${_NAMESPACE} wait --for=condition=available deployment/cloud-config --timeout=180s || true
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl apply -n ${_NAMESPACE} -f k8s/staging/compose.yml'
+
+  
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'kubectl -n ${_NAMESPACE} wait --for=condition=available --all deployments --timeout=1800s'
+
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['-c', 'kubectl -n ${_NAMESPACE} delete pod stage-tester --ignore-not-found']
 
 images:
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-api-gateway:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-cloud-config:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-service-discovery:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-proxy-client:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-user-service:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-product-service:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-order-service:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-payment-service:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-favourite-service:$SHORT_SHA'
-  - 'docker.io/${_DOCKER_USER}/${_REPO}-shipping-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-api-gateway:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-cloud-config:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-service-discovery:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-proxy-client:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-user-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-product-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-order-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-payment-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-favourite-service:$SHORT_SHA'
+  - 'docker.io/juancato/ecomerce-taller-shipping-service:$SHORT_SHA'
 
 availableSecrets:
   secretManager:

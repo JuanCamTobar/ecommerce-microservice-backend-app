@@ -7,7 +7,6 @@ on:
       - main
       - develop
       - stage
-
 jobs:
   generate-release-notes:
     name: Generate & Publish Release Notes
